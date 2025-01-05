@@ -1,0 +1,162 @@
+target_site = "https://indianexpress.com/section/technology/artificial-intelligence/"
+
+#Only for web extraction
+from bs4 import BeautifulSoup
+import requests
+
+#Direct Gemini Import
+import google.generativeai as gai
+import time
+
+#system libraries
+from docx import Document
+import os
+
+def extract_links_from_leftpanel(url):
+    """
+    Extracts all 'a href' links from the <div class="leftpanel"> section of a given URL.
+
+    Args:
+        url: The URL of the webpage to scrape.
+
+    Returns:
+        A list of all the extracted 'a href' links.
+    """
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for bad status codes
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+        leftpanel = soup.find('div', class_='leftpanel')
+
+        if leftpanel:
+            links = [a['href'] for a in leftpanel.find_all('a')]
+            return links
+        else:
+            print(f"Warning: <div class='leftpanel'> not found on {url}")
+            return []
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching URL: {e}")
+        return []
+
+gai.configure(api_key='AIzaSyBQyiMq0lLgjHq3mVx-2EV0r9CSFl9sH2Q')
+model = gai.GenerativeModel('gemini-1.5-flash')
+
+# Example usage:
+
+#link to link list conversion
+
+url = "https://indianexpress.com/section/technology/artificial-intelligence/"  # Replace with the actual URL
+links = extract_links_from_leftpanel(url)
+
+first_8_links = [link for i, link in enumerate(links) if i < 3] #8
+print("Extracted links:")
+for link in first_8_links:
+    print(link)
+
+
+def extract_text_actual_data(url, max_length=2000):
+    """
+    Extracts all text content from <p>, <h1>, <h2>, <h3>, and <h4> tags 
+    within the <div class="leftpanel"> section of a given URL and stores 
+    it in a single string, limiting the length to max_length characters.
+
+    Args:
+        url: The URL of the webpage to scrape.
+        max_length: Maximum number of characters to include in the string.
+
+    Returns:
+        A single string containing all the extracted text, truncated to max_length.
+    """
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raise an exception for bad status codes
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+        leftpanel = soup.find('div', class_='leftpanel')
+
+        if leftpanel:
+            text_elements = leftpanel.find_all(['p', 'h1', 'h2', 'h3', 'h4'])
+            all_text = " ".join([element.get_text(strip=True) for element in text_elements])
+            return all_text[:max_length]  # Truncate to max_length characters
+        else:
+            print(f"Warning: <div class='leftpanel'> not found on {url}")
+            return ""
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching URL: {e}")
+        return ""
+
+# Example usage:
+url = "https://www.example.com"  # Replace with the actual URL
+extracted_text = extract_text_actual_data(first_8_links[0])
+
+# Brain to decide
+#Top companies = OpenAI, Chatgpt, Microsoft, Amazon, Meta, Amazon, Gemini
+
+print(extracted_text)
+
+Binary_address_famous = []
+Binary_address_UNfamous = []
+
+
+def summ1(text, time1 = 12):
+    Main_statment = "Summarize the text and make sure that the main company is in the first sentence itself for \" " + str(text)+ "\""
+    History_text = model.generate_content(Main_statment)
+
+    Test_text = History_text.text
+
+    time.sleep(time1)
+    return str(Test_text)
+
+def current_disicion(Test_text):
+    summ1(Test_text)
+    Main_statment = "Only answer in 0 for false and 1 for Ture. Is the following text taking about microsoft, openAI, or Meta \" " +Test_text+ "\""
+    History_text = model.generate_content(Main_statment)
+    Final_text_binary_store = History_text.text
+    int_decision = int(str(Final_text_binary_store))
+
+    return int_decision
+
+
+def test_binary_address(list):
+    #loop through the list of urls
+
+    for items in list:
+        current_item = items
+        P_1 = extract_text_actual_data(current_item)
+        P_2 = summ1(P_1)
+        P_3 = current_disicion(P_2)
+
+        if P_3 == 1:
+            Binary_address_famous.append(P_2)
+        else:
+            Binary_address_UNfamous.append(P_2)
+
+
+test_binary_address(first_8_links)
+
+print(Binary_address_famous)
+
+print("\n\n Unfamous \n\n")
+print(Binary_address_UNfamous)
+
+#Making final text for Beehiiv
+
+
+def test_binary_address(list):
+    #loop through the list of urls
+
+    for items in list:
+        current_item = items
+        P_1 = extract_text_actual_data(current_item)
+        P_2 = summ1(P_1)
+        P_3 = current_disicion(P_2)
+
+        if P_3 == 1:
+            Binary_address_famous.append(P_2)
+        else:
+            Binary_address_UNfamous.append(P_2)
